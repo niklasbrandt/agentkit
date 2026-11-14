@@ -46,8 +46,10 @@ P=$!
 # the sleeper's output goes nowhere: a pipe after run.sh would otherwise wait for it to end
 ( sleep "$T" && kill -TERM "$P" ) >/dev/null 2>&1 &
 W=$!
+# the watchdog goes with run.sh however it ends ( a TERM / INT to run.sh used to orphan its sleep, which then held the worktree "busy" for hours )
+trap 'pkill -P "$W" 2>/dev/null; kill "$W" 2>/dev/null' EXIT
+trap 'kill -TERM "$P" 2>/dev/null; exit 143' TERM INT
 wait "$P"; RC=$?
-pkill -P "$W" 2>/dev/null; kill "$W" 2>/dev/null
 for c in $( pgrep -f "$PATTERN" ); do
 	[ "$( ps -o ppid= -p "$c" | tr -d ' ' )" = "1" ] && kill -9 "$c" 2>/dev/null
 done
